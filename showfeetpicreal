@@ -1,0 +1,178 @@
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
+local Window = OrionLib:MakeWindow({Name = "TSB and UTG Script simple", HidePremium = false, SaveConfig = true, IntroText = "Orion Library"})
+
+local Tab = Window:MakeTab({
+    Name = "Home",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+Tab:AddLabel("Hitbox is messy")
+
+local originalSpeed = 16 -- Store the original speed initially
+local infiniteJumpEnabled = false -- Track if infinite jump is enabled
+local tpwalkingEnabled = false -- Track if teleport walking is enabled
+local hitboxExpanded = false -- Track if hitbox expander is enabled
+
+-- Helper function to toggle noclip
+local function toggleNoclip(enabled)
+    local character = game.Players.LocalPlayer.Character
+    if character then
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+        if humanoidRootPart then
+            if enabled then
+                -- Disable collision
+                humanoidRootPart.CanCollide = false
+                for _, part in pairs(character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+
+                -- Set the character's position to bypass walls
+                local function bypassWalls()
+                    while enabled do
+                        if humanoidRootPart then
+                            humanoidRootPart.Velocity = Vector3.new(0, 0, 0) -- Prevent unwanted velocity effects
+                        end
+                        wait(0.1)  -- Adjust the wait time as necessary
+                    end
+                end
+
+                -- Run the bypass function in a separate coroutine
+                coroutine.wrap(bypassWalls)()
+
+            else
+                -- Enable collision
+                humanoidRootPart.CanCollide = true
+                for _, part in pairs(character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = true
+                    end
+                end
+            end
+        end
+    end
+end
+
+Tab:AddButton({
+    Name = "KYS (its a real button)",
+    Callback = function()
+        game.Players.LocalPlayer.Character.Head:Destroy()
+    end
+})
+
+Tab:AddToggle({
+    Name = "Speed toggle for smth",
+    Default = false,
+    Callback = function(enabled)
+        local player = game.Players.LocalPlayer
+        local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+
+        if humanoid then
+            if enabled then
+                humanoid.WalkSpeed = 150
+            else
+                humanoid.WalkSpeed = originalSpeed
+            end
+        end
+    end
+})
+
+Tab:AddToggle({
+    Name = "Infinite Jump for utg",
+    Default = false,
+    Callback = function(enabled)
+        local player = game.Players.LocalPlayer
+        local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+
+        if humanoid then
+            if enabled then
+                local function onJumpRequest()
+                    if infiniteJumpEnabled then
+                        humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+                        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                    end
+                end
+
+                -- Connect the function to the JumpRequest event
+                local jumpRequestConnection
+                jumpRequestConnection = game:GetService("UserInputService").JumpRequest:Connect(function()
+                    onJumpRequest()
+                end)
+
+                infiniteJumpEnabled = true
+
+            else
+                infiniteJumpEnabled = false
+            end
+        end
+    end
+})
+
+Tab:AddToggle({
+    Name = "speedhack for tsb and utg",
+    Default = false,
+    Callback = function(enabled)
+        tpwalkingEnabled = enabled
+        local player = game.Players.LocalPlayer
+        local character = player.Character
+        local humanoid = character and character:FindFirstChildWhichIsA("Humanoid")
+        local runService = game:GetService("RunService")
+        
+        if tpwalkingEnabled then
+            spawn(function()
+                while tpwalkingEnabled and character and humanoid and character.Parent do
+                    local deltaTime = runService.Heartbeat:Wait()
+                    if humanoid.MoveDirection.Magnitude > 0 then
+                        local moveSpeed = 60 -- Speed set to 60
+                        local moveDirection = humanoid.MoveDirection * moveSpeed * deltaTime
+
+                        if humanoid.RigType == Enum.HumanoidRigType.R15 then
+                            -- Adjust movement for R15 characters
+                            character:TranslateBy(moveDirection)
+                        elseif humanoid.RigType == Enum.HumanoidRigType.R6 then
+                            -- Adjust movement for R6 characters
+                            character:SetPrimaryPartCFrame(character.PrimaryPart.CFrame + moveDirection)
+                        end
+                    end
+                end
+            end)
+        end
+    end
+})
+
+-- Helper function to toggle hitbox expander
+local function toggleHitboxExpander(enabled)
+    local players = game:GetService("Players")
+    local localPlayer = players.LocalPlayer
+
+    for _, player in pairs(players:GetPlayers()) do
+        if player ~= localPlayer and player.Character then
+            for _, part in pairs(player.Character:GetChildren()) do
+                if part:IsA("BasePart") then
+                    if enabled then
+                        part.Size = Vector3.new(300, 300, 300) -- Expand hitbox size
+                        part.Transparency = 0.7
+                        part.CanCollide = false
+                    else
+                        part.Size = Vector3.new(2, 2, 1) -- Original size
+                        part.Transparency = 0 -- Reset transparency
+                        part.CanCollide = true
+                    end
+                end
+            end
+        end
+    end
+end
+
+Tab:AddToggle({
+    Name = "Hitbox Expander and Reach (idk if work)",
+    Default = false,
+    Callback = function(enabled)
+        hitboxExpanded = enabled
+        toggleHitboxExpander(hitboxExpanded)
+    end
+})
+
+OrionLib:Init()
